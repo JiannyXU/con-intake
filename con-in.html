@@ -216,8 +216,7 @@
 </div>
 
 <script>
-const ANTHROPIC_API_KEY = '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';
-const LARK_WEBHOOK_URL  = 'https://open.larksuite.com/open-apis/bot/v2/hook/da8db5b3-0dcd-4e05-b12a-c531ba5046e9';
+const LARK_WEBHOOK_URL = 'https://open.larksuite.com/open-apis/bot/v2/hook/da8db5b3-0dcd-4e05-b12a-c531ba5046e9';
 
 let uploadedFile = null;
 let msCount = 0;
@@ -225,11 +224,11 @@ let aiUsed = false;
 
 function goStep(n) {
   if (n === 4) buildReview();
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.step-tab').forEach(t => { t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.step-tab').forEach(function(t) { t.classList.remove('active'); });
   document.getElementById('panel' + n).classList.add('active');
   document.getElementById('tab' + n).classList.add('active');
-  for (let i = 1; i < n; i++) document.getElementById('tab' + i).classList.add('done');
+  for (var i = 1; i < n; i++) document.getElementById('tab' + i).classList.add('done');
 }
 
 function handleDrop(e) {
@@ -248,35 +247,49 @@ function handleFile(file) {
 }
 
 async function runExtraction() {
-  const btn = document.getElementById('extract-btn');
-  const thinking = document.getElementById('thinking');
+  var btn = document.getElementById('extract-btn');
+  var thinking = document.getElementById('thinking');
   btn.disabled = true;
   thinking.classList.add('show');
   hideError();
   try {
-    const ext = uploadedFile.name.split('.').pop().toLowerCase();
-    let messageContent;
+    var ext = uploadedFile.name.split('.').pop().toLowerCase();
+    var body;
     if (ext === 'pdf') {
       document.getElementById('thinking-text').textContent = 'Reading PDF, extracting fields…';
-      const base64 = await fileToBase64(uploadedFile);
-      messageContent = [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-        { type: 'text', text: buildPrompt() }
-      ];
+      var base64 = await fileToBase64(uploadedFile);
+      body = {
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: buildPrompt() }
+          ]
+        }]
+      };
     } else {
       document.getElementById('thinking-text').textContent = 'Reading Excel BOQ, extracting fields…';
-      const text = await excelToText(uploadedFile);
-      messageContent = [{ type: 'text', text: 'BOQ/contract Excel content:\n\n' + text + '\n\n' + buildPrompt() }];
+      var text = await excelToText(uploadedFile);
+      body = {
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [{ type: 'text', text: 'BOQ/contract Excel content:\n\n' + text + '\n\n' + buildPrompt() }]
+        }]
+      };
     }
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    var res = await fetch('/api/extract', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: messageContent }] })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
     });
-    const data = await res.json();
+    var data = await res.json();
     if (data.error) throw new Error(data.error.message);
-    const raw = data.content.map(i => i.text || '').join('');
-    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    var raw = data.content.map(function(i) { return i.text || ''; }).join('');
+    var parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
     fillFields(parsed);
     aiUsed = true;
     thinking.classList.remove('show');
@@ -289,45 +302,43 @@ async function runExtraction() {
 }
 
 function buildPrompt() {
-  return `Extract these fields and return ONLY a valid JSON object, no markdown, no explanation:
-{"client_name":"","contract_number":"","project_name":"","project_number":"","contract_amount":"","currency":"EUR","payment_terms":"","contract_start_date":"YYYY-MM-DD","contract_end_date":"YYYY-MM-DD","key_account":"","milestones":[{"description":"","amount":"","due_date":"YYYY-MM-DD"}]}
-Rules: leave unknown fields as empty string. Extract ALL milestone/payment rows. Dates must be YYYY-MM-DD. Amount fields must be numeric strings only.`;
+  return 'Extract these fields and return ONLY a valid JSON object, no markdown, no explanation:\n{"client_name":"","contract_number":"","project_name":"","project_number":"","contract_amount":"","currency":"EUR","payment_terms":"","contract_start_date":"YYYY-MM-DD","contract_end_date":"YYYY-MM-DD","key_account":"","milestones":[{"description":"","amount":"","due_date":"YYYY-MM-DD"}]}\nRules: leave unknown fields as empty string. Extract ALL milestone/payment rows. Dates must be YYYY-MM-DD. Amount fields must be numeric strings only.';
 }
 
 function excelToText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
       try {
-        const wb = XLSX.read(e.target.result, { type: 'binary' });
-        let text = '';
-        wb.SheetNames.forEach(name => { text += '\n[Sheet: ' + name + ']\n' + XLSX.utils.sheet_to_csv(wb.Sheets[name]); });
+        var wb = XLSX.read(e.target.result, { type: 'binary' });
+        var text = '';
+        wb.SheetNames.forEach(function(name) { text += '\n[Sheet: ' + name + ']\n' + XLSX.utils.sheet_to_csv(wb.Sheets[name]); });
         resolve(text.slice(0, 12000));
       } catch (err) { reject(err); }
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = function() { reject(new Error('Failed to read file')); };
     reader.readAsBinaryString(file);
   });
 }
 
 function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = () => rej(new Error('Read failed'));
+  return new Promise(function(res, rej) {
+    var r = new FileReader();
+    r.onload = function() { res(r.result.split(',')[1]); };
+    r.onerror = function() { rej(new Error('Read failed')); };
     r.readAsDataURL(file);
   });
 }
 
 function fillFields(d) {
-  const map = {
+  var map = {
     'f-client': d.client_name, 'f-contract-no': d.contract_number,
     'f-project-name': d.project_name, 'f-project-no': d.project_number,
     'f-start': d.contract_start_date, 'f-end': d.contract_end_date,
     'f-amount': d.contract_amount, 'f-terms': d.payment_terms, 'f-account': d.key_account
   };
-  Object.entries(map).forEach(([id, val]) => {
-    if (val) { const el = document.getElementById(id); el.value = val; el.classList.add('ai-filled'); }
+  Object.entries(map).forEach(function(entry) {
+    if (entry[1]) { var el = document.getElementById(entry[0]); el.value = entry[1]; el.classList.add('ai-filled'); }
   });
   if (d.currency) document.getElementById('f-currency').value = d.currency;
   document.getElementById('badge-contract').classList.add('show');
@@ -335,7 +346,7 @@ function fillFields(d) {
   if (d.milestones && d.milestones.length) {
     document.getElementById('ms-container').innerHTML = '';
     msCount = 0;
-    d.milestones.forEach(m => addMilestone(m.description, m.amount, m.due_date, true));
+    d.milestones.forEach(function(m) { addMilestone(m.description, m.amount, m.due_date, true); });
     document.getElementById('badge-ms').classList.add('show');
   }
 }
@@ -343,11 +354,11 @@ function fillFields(d) {
 function addMilestone(desc, amount, date, ai) {
   desc = desc || ''; amount = amount || ''; date = date || ''; ai = ai || false;
   msCount++;
-  const id = msCount;
-  const row = document.createElement('div');
+  var id = msCount;
+  var row = document.createElement('div');
   row.className = 'ms-row';
   row.id = 'ms-' + id;
-  const c = ai ? ' ai-filled' : '';
+  var c = ai ? ' ai-filled' : '';
   row.innerHTML =
     '<input type="text" class="' + c + '" placeholder="e.g. Upon contract signing" value="' + esc(desc) + '" oninput="calcTotal()">' +
     '<input type="number" class="' + c + '" placeholder="0.00" value="' + esc(amount) + '" oninput="calcTotal()">' +
@@ -358,16 +369,16 @@ function addMilestone(desc, amount, date, ai) {
 }
 
 function calcTotal() {
-  let total = 0;
-  document.querySelectorAll('#ms-container input[type=number]').forEach(i => { total += parseFloat(i.value) || 0; });
-  const cur = document.getElementById('f-currency').value || 'EUR';
+  var total = 0;
+  document.querySelectorAll('#ms-container input[type=number]').forEach(function(i) { total += parseFloat(i.value) || 0; });
+  var cur = document.getElementById('f-currency').value || 'EUR';
   document.getElementById('ms-total').textContent = cur + ' ' + total.toLocaleString('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function buildReview() {
-  const cur = v('f-currency') || 'EUR';
-  const amt = parseFloat(v('f-amount')) || 0;
-  const rows = [
+  var cur = v('f-currency') || 'EUR';
+  var amt = parseFloat(v('f-amount')) || 0;
+  var rows = [
     ['Client', v('f-client') || '—', true],
     ['Contract number', v('f-contract-no') || '—', false],
     ['Project', ([v('f-project-no'), v('f-project-name')].filter(Boolean).join(' ')) || '—', true],
@@ -379,44 +390,35 @@ function buildReview() {
   document.getElementById('review-summary').innerHTML = rows.map(function(r) {
     return '<tr><td>' + r[0] + '</td><td class="' + (r[2] ? 'normal' : '') + '">' + r[1] + '</td></tr>';
   }).join('');
-  const msRows = document.querySelectorAll('#ms-container .ms-row');
-  let msHtml = '';
+  var msRows = document.querySelectorAll('#ms-container .ms-row');
+  var msHtml = '';
   msRows.forEach(function(row, i) {
-    const inputs = row.querySelectorAll('input');
-    const d = inputs[0].value || ('Milestone ' + (i + 1));
-    const a = parseFloat(inputs[1].value) || 0;
-    const dt = inputs[2].value || 'TBD';
+    var inputs = row.querySelectorAll('input');
+    var d = inputs[0].value || ('Milestone ' + (i + 1));
+    var a = parseFloat(inputs[1].value) || 0;
+    var dt = inputs[2].value || 'TBD';
     msHtml += '<tr><td class="normal">' + d + '</td><td>' + cur + ' ' + a.toLocaleString('en-DE', { minimumFractionDigits: 2 }) + ' · ' + dt + '</td></tr>';
   });
   document.getElementById('review-ms').innerHTML = msHtml || '<tr><td colspan="2" style="color:var(--text-3)">No milestones added</td></tr>';
 }
 
 async function submitForm() {
-  const btn = document.getElementById('submit-btn');
+  var btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
-  const cur = v('f-currency') || 'EUR';
-  const milestones = [];
+  var cur = v('f-currency') || 'EUR';
+  var milestones = [];
   document.querySelectorAll('#ms-container .ms-row').forEach(function(row) {
-    const inputs = row.querySelectorAll('input');
+    var inputs = row.querySelectorAll('input');
     milestones.push({ description: inputs[0].value, amount: inputs[1].value, due_date: inputs[2].value });
   });
-  const payload = {
-    client_name: v('f-client'), contract_number: v('f-contract-no'),
-    project_name: v('f-project-name'), project_number: v('f-project-no'),
-    contract_start_date: v('f-start'), contract_end_date: v('f-end'),
-    contract_amount: v('f-amount'), currency: cur,
-    payment_terms: v('f-terms'), key_account: v('f-account'),
-    milestones: milestones, ai_assisted: aiUsed,
-    submitted_at: new Date().toISOString()
-  };
   try {
     await fetch(LARK_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         msg_type: 'text',
-        content: { text: '📋 New contract pending review\nProject: ' + payload.project_number + ' ' + payload.project_name + '\nClient: ' + payload.client_name + '\nAmount: ' + cur + ' ' + parseFloat(payload.contract_amount || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB') }
+        content: { text: '📋 New contract pending review\nProject: ' + v('f-project-no') + ' ' + v('f-project-name') + '\nClient: ' + v('f-client') + '\nAmount: ' + cur + ' ' + (parseFloat(v('f-amount')) || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB') }
       })
     });
   } catch(e) { console.warn('Lark notify failed', e); }
@@ -427,8 +429,8 @@ async function submitForm() {
 }
 
 function v(id) { return document.getElementById(id).value.trim(); }
-function esc(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
-function showError(msg) { const el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
+function esc(s) { return (s || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+function showError(msg) { var el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
 
 addMilestone('Upon contract signing', '', '');
