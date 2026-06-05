@@ -65,7 +65,7 @@ Extraction rules:
 - client_name: the Lessee company name (not EventRent/Lessor)
 - contract_number: look in page footers, format is usually initials + date digits e.g. "JX101192023". Return exactly as found.
 - project_name: the purpose/name of the publicity event or project
-- contract_amount: the TOTAL basic + additional charge only (exclude deposit). Numeric string only, no currency symbol, use dot as decimal separator.
+- contract_amount: the TOTAL of all charges INCLUDING security deposit. Add up basic charge + additional charge + deposit amount. Numeric string only, no currency symbol, use dot as decimal separator.
 - currency: 3-letter code, default EUR
 - payment_terms: summarize all payment conditions in one line
 - contract_start_date / contract_end_date: from the rental period section, YYYY-MM-DD format
@@ -76,6 +76,7 @@ Extraction rules:
   * For amounts: calculate the actual EUR amount from percentages if possible, otherwise leave the percentage description in the description field
   * For due dates: convert relative dates ("30 days after signing") using the contract start date as reference; use exact dates when stated (e.g. "30th of April 2024" → "2024-04-30")
   * Amount must be numeric string only
+  * The sum of all milestone amounts must equal contract_amount exactly
 
 Leave unknown fields as empty string. Never invent data.`;
 }
