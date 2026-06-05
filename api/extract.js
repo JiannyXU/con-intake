@@ -5,12 +5,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.body.action === 'notify') {
-    const response = await fetch(process.env.LARK_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body.payload)
-    });
-    return res.status(response.status).json({ ok: true });
+    try {
+      await fetch(process.env.LARK_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body.payload)
+      });
+      return res.status(200).json({ ok: true });
+    } catch(e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
