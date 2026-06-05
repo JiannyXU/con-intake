@@ -72,4 +72,10 @@ Extraction rules:
 - key_account: leave empty if not found
 - milestones: extract EVERY payment obligation as a separate milestone including:
   * Each percentage-based payment (e.g. "50% of basic rental charge at signing")
-  * Security deposit if
+  * Security deposit if mentioned (e.g. "Security deposit")
+  * For amounts: calculate the actual EUR amount from percentages if possible, otherwise leave the percentage description in the description field
+  * For due dates: convert relative dates ("30 days after signing") using the contract start date as reference; use exact dates when stated (e.g. "30th of April 2024" → "2024-04-30")
+  * Amount must be numeric string only
+
+Leave unknown fields as empty string. Never invent data.`;
+}
