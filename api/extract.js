@@ -17,15 +17,16 @@ export default async function handler(req, res) {
     }
   }
 
-  // Inject improved prompt before forwarding to Anthropic
   const body = req.body;
+
+  // Inject prompt into the last text block
   if (body.messages && body.messages[0] && body.messages[0].content) {
     const content = body.messages[0].content;
-    const textBlock = Array.isArray(content)
-      ? content.find(c => c.type === 'text')
-      : null;
-    if (textBlock) {
-      textBlock.text = getPrompt();
+    if (Array.isArray(content)) {
+      const textBlock = content.find(c => c.type === 'text');
+      if (textBlock) textBlock.text = getPrompt(textBlock.text);
+    } else if (typeof content === 'string') {
+      body.messages[0].content = getPrompt(content);
     }
   }
 
@@ -43,41 +44,35 @@ export default async function handler(req, res) {
   res.status(response.status).json(data);
 }
 
-function getPrompt() {
-  return `You are extracting structured data from a rental/service contract. Return ONLY a valid JSON object with no markdown, no explanation, no preamble.
+function getPrompt(existingText) {
+  const prefix = existingText && existingText.trim() ? existingText + '\n\n' : '';
+  return prefix + `IMPORTANT: Your entire response must be a single valid JSON object. Do not write any text before or after the JSON. Do not explain anything. Do not say "I need to". Just output the JSON.
+
+Extract these fields from the contract or BOQ document above:
 
 {
   "client_name": "",
   "contract_number": "",
   "project_name": "",
-  "contract_amount": "",
   "currency": "EUR",
   "payment_terms": "",
   "contract_start_date": "YYYY-MM-DD",
   "contract_end_date": "YYYY-MM-DD",
-  "key_account": "",
   "milestones": [
     {"description": "", "amount": "", "due_date": "YYYY-MM-DD"}
   ]
 }
 
-Extraction rules:
-- client_name: the Lessee company name (not EventRent/Lessor)
-- contract_number: look in page footers, format is usually initials + date digits e.g. "JX101192023". Return exactly as found.
-- project_name: the purpose/name of the publicity event or project
-- contract_amount: the TOTAL of all charges INCLUDING security deposit. Add up basic charge + additional charge + deposit amount. Numeric string only, no currency symbol, use dot as decimal separator.
+Rules:
+- client_name: the customer/lessee company name
+- contract_number: look in page footers or headers, format like "JX101192023". Empty string if not found.
+- project_name: name of the project or publicity event. For BOQ files use the sheet name or quotation title.
 - currency: 3-letter code, default EUR
-- payment_terms: summarize all payment conditions in one line
-- contract_start_date / contract_end_date: from the rental period section, YYYY-MM-DD format
-- key_account: leave empty if not found
-- milestones: extract EVERY payment obligation as a separate milestone including:
-  * Each percentage-based payment (e.g. "50% of basic rental charge at signing")
-  * Security deposit if mentioned (e.g. "Security deposit")
-  * For amounts: calculate the actual EUR amount from percentages if possible, otherwise leave the percentage description in the description field
-  * For due dates: convert relative dates ("30 days after signing") using the contract start date as reference; use exact dates when stated (e.g. "30th of April 2024" → "2024-04-30")
-  * Amount must be numeric string only
-  * The sum of all milestone amounts must equal contract_amount exactly
-- For BOQ files: milestones are typically labeled M1&M2 (50%), M3 (35%), M4 (15%) in the header row. Extract these three as milestones using the Grand Total amount. Project name comes from the sheet title or quotation header.
-
-Leave unknown fields as empty string. Never invent data.`;
+- payment_terms: one-line summary of payment schedule
+- contract_start_date / contract_end_date: YYYY-MM-DD, empty string if not found
+- milestones: for BOQ files, look for M1/M2/M3/M4 columns or percentage splits in the header row. Use the Grand Total row for amounts. Calculate actual numeric amounts. For contracts, extract each payment obligation including deposits.
+- All amount fields must be numeric strings only (e.g. "39480" not "EUR 39,480" or "50%")
+- Dates must be YYYY-MM-DD or empty string
+- Leave unknown fields as empty string
+- Output JSON only. Nothing else.`;
 }
