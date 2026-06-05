@@ -77,6 +77,7 @@ Extraction rules:
   * For due dates: convert relative dates ("30 days after signing") using the contract start date as reference; use exact dates when stated (e.g. "30th of April 2024" → "2024-04-30")
   * Amount must be numeric string only
   * The sum of all milestone amounts must equal contract_amount exactly
+- For BOQ files: milestones are typically labeled M1&M2 (50%), M3 (35%), M4 (15%) in the header row. Extract these three as milestones using the Grand Total amount. Project name comes from the sheet title or quotation header.
 
 Leave unknown fields as empty string. Never invent data.`;
 }
