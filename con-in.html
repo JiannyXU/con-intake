@@ -38,11 +38,14 @@
   .upload-zone h3 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
   .upload-zone p { font-size: 12px; color: var(--text-3); }
   .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field-grid.single { grid-template-columns: 1fr; }
   .field { display: flex; flex-direction: column; gap: 5px; }
   .field label { font-size: 12px; color: var(--text-2); font-weight: 500; }
   .field input, .field select { font-family: var(--sans); font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; transition: border-color .12s; }
   .field input:focus, .field select:focus { border-color: var(--accent-mid); }
   .field input.ai-filled { border-color: var(--accent); background: var(--accent-light); }
+  .field input.auto-calc { background: var(--surface2); color: var(--text-2); cursor: not-allowed; border-color: var(--border); font-family: var(--mono); }
+  .field .field-hint { font-size: 11px; color: var(--text-3); margin-top: 2px; }
   .ai-btn { width: 100%; margin-top: 14px; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
   .ai-btn:disabled { opacity: .4; cursor: not-allowed; }
   .ai-btn:hover:not(:disabled) { opacity: .88; }
@@ -57,6 +60,7 @@
   .ms-header span { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
   .ms-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr 28px; gap: 8px; margin-bottom: 7px; align-items: center; }
   .ms-row input { font-family: var(--sans); font-size: 13px; padding: 7px 9px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; width: 100%; transition: border-color .12s; }
+  .ms-row input[type=number] { font-family: var(--mono); }
   .ms-row input:focus { border-color: var(--accent-mid); }
   .ms-row input.ai-filled { border-color: var(--accent); background: var(--accent-light); }
   .ms-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; transition: color .12s; }
@@ -109,6 +113,7 @@
     <div class="step-tab" id="tab4" onclick="goStep(4)">4 · Review</div>
   </div>
 
+  <!-- STEP 1 -->
   <div class="panel active" id="panel1">
     <div class="card">
       <div class="card-title">Contract / BOQ file</div>
@@ -133,16 +138,16 @@
     <div class="btn-row"><button class="btn primary" onclick="goStep(2)">Fill manually →</button></div>
   </div>
 
+  <!-- STEP 2 -->
   <div class="panel" id="panel2">
     <div class="card">
       <div class="card-title">Client & contract <span class="ai-badge" id="badge-contract">✦ AI filled</span></div>
       <div class="field-grid">
         <div class="field"><label>Client name</label><input type="text" id="f-client" placeholder="e.g. Huawei Technologies"></div>
-        <div class="field"><label>Contract number</label><input type="text" id="f-contract-no" placeholder="e.g. FPA3721DEU…"></div>
+        <div class="field"><label>Contract number</label><input type="text" id="f-contract-no" placeholder="e.g. JX101192023"></div>
       </div>
-      <div class="field-grid">
-        <div class="field"><label>Project name</label><input type="text" id="f-project-name" placeholder="e.g. Huawei DP Container"></div>
-        <div class="field"><label>Project number</label><input type="text" id="f-project-no" placeholder="e.g. 24218"></div>
+      <div class="field-grid single">
+        <div class="field"><label>Project name</label><input type="text" id="f-project-name" placeholder="e.g. HyxiPower Roadshows"></div>
       </div>
       <div class="field-grid" style="margin-bottom:0">
         <div class="field"><label>Contract start date</label><input type="date" id="f-start"></div>
@@ -151,15 +156,19 @@
     </div>
     <div class="card">
       <div class="card-title">Financial terms <span class="ai-badge" id="badge-finance">✦ AI filled</span></div>
-      <div class="field-grid">
-        <div class="field"><label>Currency</label>
-          <select id="f-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>CNY</option></select>
+      <div class="field-grid" style="margin-bottom:12px">
+        <div class="field">
+          <label>Currency</label>
+          <select id="f-currency" onchange="calcTotal()"><option>EUR</option><option>USD</option><option>GBP</option><option>CNY</option></select>
         </div>
-        <div class="field"><label>Contract amount</label><input type="number" id="f-amount" placeholder="0.00"></div>
+        <div class="field">
+          <label>Contract amount</label>
+          <input type="text" id="f-amount" class="auto-calc" readonly placeholder="Auto-calculated from milestones">
+          <span class="field-hint">Auto-calculated · equal to sum of all milestones</span>
+        </div>
       </div>
-      <div class="field-grid" style="margin-bottom:0">
-        <div class="field"><label>Payment terms</label><input type="text" id="f-terms" placeholder="e.g. 30 days after signing"></div>
-        <div class="field"><label>Key account</label><input type="text" id="f-account" placeholder="e.g. Huawei"></div>
+      <div class="field-grid single" style="margin-bottom:0">
+        <div class="field"><label>Payment terms</label><input type="text" id="f-terms" placeholder="e.g. 50% at signing, 50% on 30 Apr 2024"></div>
       </div>
     </div>
     <div class="btn-row">
@@ -168,6 +177,7 @@
     </div>
   </div>
 
+  <!-- STEP 3 -->
   <div class="panel" id="panel3">
     <div class="card">
       <div class="card-title">Milestone payments <span class="ai-badge" id="badge-ms">✦ AI filled</span></div>
@@ -175,7 +185,7 @@
       <div id="ms-container"></div>
       <button class="add-ms" onclick="addMilestone()">＋ Add milestone</button>
       <div class="ms-total">
-        <span>Total milestone amount</span>
+        <span>Total (= Contract amount)</span>
         <span id="ms-total">EUR 0.00</span>
       </div>
     </div>
@@ -185,6 +195,7 @@
     </div>
   </div>
 
+  <!-- STEP 4 -->
   <div class="panel" id="panel4">
     <div class="card">
       <div class="card-title">Contract summary</div>
@@ -204,6 +215,7 @@
     </div>
   </div>
 
+  <!-- SUCCESS -->
   <div class="panel" id="panel-success">
     <div class="card">
       <div class="success-state">
@@ -263,7 +275,7 @@ async function runExtraction() {
           role: 'user',
           content: [
             { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-            { type: 'text', text: buildPrompt() }
+            { type: 'text', text: '' }
           ]
         }]
       };
@@ -275,7 +287,7 @@ async function runExtraction() {
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: [{ type: 'text', text: 'BOQ/contract Excel content:\n\n' + text + '\n\n' + buildPrompt() }]
+          content: [{ type: 'text', text: 'BOQ/contract Excel content:\n\n' + text }]
         }]
       };
     }
@@ -297,10 +309,6 @@ async function runExtraction() {
     btn.disabled = false;
     showError('Extraction failed: ' + err.message + '. Please fill in the details manually.');
   }
-}
-
-function buildPrompt() {
-  return '';
 }
 
 function excelToText(file) {
@@ -330,10 +338,12 @@ function fileToBase64(file) {
 
 function fillFields(d) {
   var map = {
-    'f-client': d.client_name, 'f-contract-no': d.contract_number,
-    'f-project-name': d.project_name, 'f-project-no': d.project_number,
-    'f-start': d.contract_start_date, 'f-end': d.contract_end_date,
-    'f-amount': d.contract_amount, 'f-terms': d.payment_terms, 'f-account': d.key_account
+    'f-client': d.client_name,
+    'f-contract-no': d.contract_number,
+    'f-project-name': d.project_name,
+    'f-start': d.contract_start_date,
+    'f-end': d.contract_end_date,
+    'f-terms': d.payment_terms
   };
   Object.entries(map).forEach(function(entry) {
     if (entry[1]) { var el = document.getElementById(entry[0]); el.value = entry[1]; el.classList.add('ai-filled'); }
@@ -347,6 +357,8 @@ function fillFields(d) {
     d.milestones.forEach(function(m) { addMilestone(m.description, m.amount, m.due_date, true); });
     document.getElementById('badge-ms').classList.add('show');
   }
+  // contract amount auto-calculated after milestones are filled
+  calcTotal();
 }
 
 function addMilestone(desc, amount, date, ai) {
@@ -370,20 +382,22 @@ function calcTotal() {
   var total = 0;
   document.querySelectorAll('#ms-container input[type=number]').forEach(function(i) { total += parseFloat(i.value) || 0; });
   var cur = document.getElementById('f-currency').value || 'EUR';
-  document.getElementById('ms-total').textContent = cur + ' ' + total.toLocaleString('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var formatted = total.toLocaleString('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('ms-total').textContent = cur + ' ' + formatted;
+  // sync to contract amount field
+  document.getElementById('f-amount').value = total > 0 ? formatted : '';
 }
 
 function buildReview() {
-  var cur = v('f-currency') || 'EUR';
-  var amt = parseFloat(v('f-amount')) || 0;
+  var cur = document.getElementById('f-currency').value || 'EUR';
+  var amtVal = document.getElementById('f-amount').value || '0';
   var rows = [
-    ['Client', v('f-client') || '—', true],
-    ['Contract number', v('f-contract-no') || '—', false],
-    ['Project', ([v('f-project-no'), v('f-project-name')].filter(Boolean).join(' ')) || '—', true],
-    ['Contract period', ([v('f-start'), v('f-end')].filter(Boolean).join(' → ')) || '—', true],
-    ['Contract amount', cur + ' ' + amt.toLocaleString('en-DE', { minimumFractionDigits: 2 }), false],
-    ['Payment terms', v('f-terms') || '—', true],
-    ['Key account', v('f-account') || '—', true],
+    ['Client', document.getElementById('f-client').value || '—', true],
+    ['Contract number', document.getElementById('f-contract-no').value || '—', false],
+    ['Project', document.getElementById('f-project-name').value || '—', true],
+    ['Contract period', ([document.getElementById('f-start').value, document.getElementById('f-end').value].filter(Boolean).join(' → ')) || '—', true],
+    ['Contract amount', cur + ' ' + amtVal, false],
+    ['Payment terms', document.getElementById('f-terms').value || '—', true],
   ];
   document.getElementById('review-summary').innerHTML = rows.map(function(r) {
     return '<tr><td>' + r[0] + '</td><td class="' + (r[2] ? 'normal' : '') + '">' + r[1] + '</td></tr>';
@@ -404,7 +418,8 @@ async function submitForm() {
   var btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.textContent = 'Submitting…';
-  var cur = v('f-currency') || 'EUR';
+  var cur = document.getElementById('f-currency').value || 'EUR';
+  var amt = document.getElementById('f-amount').value || '0';
   try {
     await fetch('/api/extract', {
       method: 'POST',
@@ -414,7 +429,7 @@ async function submitForm() {
         payload: {
           msg_type: 'text',
           content: {
-            text: '📋 New Contract pending review\nProject: ' + v('f-project-no') + ' ' + v('f-project-name') + '\nClient: ' + v('f-client') + '\nAmount: ' + cur + ' ' + (parseFloat(v('f-amount')) || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB')
+            text: '📋 New Contract pending review\nProject: ' + (document.getElementById('f-project-name').value || '—') + '\nClient: ' + (document.getElementById('f-client').value || '—') + '\nAmount: ' + cur + ' ' + amt + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB')
           }
         }
       })
@@ -426,7 +441,6 @@ async function submitForm() {
   document.getElementById('panel-success').classList.add('active');
 }
 
-function v(id) { return document.getElementById(id).value.trim(); }
 function esc(s) { return (s || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
 function showError(msg) { var el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
