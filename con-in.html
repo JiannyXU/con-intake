@@ -216,11 +216,9 @@
 </div>
 
 <script>
-const LARK_WEBHOOK_URL = 'https://open.larksuite.com/open-apis/bot/v2/hook/da8db5b3-0dcd-4e05-b12a-c531ba5046e9';
-
-let uploadedFile = null;
-let msCount = 0;
-let aiUsed = false;
+var uploadedFile = null;
+var msCount = 0;
+var aiUsed = false;
 
 function goStep(n) {
   if (n === 4) buildReview();
@@ -407,21 +405,21 @@ async function submitForm() {
   btn.disabled = true;
   btn.textContent = 'Submitting…';
   var cur = v('f-currency') || 'EUR';
-  var milestones = [];
-  document.querySelectorAll('#ms-container .ms-row').forEach(function(row) {
-    var inputs = row.querySelectorAll('input');
-    milestones.push({ description: inputs[0].value, amount: inputs[1].value, due_date: inputs[2].value });
-  });
   try {
-    await fetch(LARK_WEBHOOK_URL, {
+    await fetch('/api/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        msg_type: 'text',
-        content: { text: '📋 New contract pending review\nProject: ' + v('f-project-no') + ' ' + v('f-project-name') + '\nClient: ' + v('f-client') + '\nAmount: ' + cur + ' ' + (parseFloat(v('f-amount')) || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB') }
+        action: 'notify',
+        payload: {
+          msg_type: 'text',
+          content: {
+            text: '📋 New Contract pending review\nProject: ' + v('f-project-no') + ' ' + v('f-project-name') + '\nClient: ' + v('f-client') + '\nAmount: ' + cur + ' ' + (parseFloat(v('f-amount')) || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB')
+          }
+        }
       })
     });
-  } catch(e) { console.warn('Lark notify failed', e); }
+  } catch(e) { console.warn('Notify failed', e); }
   document.getElementById('status-pill').className = 'status-pill status-done';
   document.getElementById('status-pill').textContent = 'Submitted';
   document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
