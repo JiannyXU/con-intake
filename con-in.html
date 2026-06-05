@@ -316,9 +316,18 @@ function excelToText(file) {
     var reader = new FileReader();
     reader.onload = function(e) {
       try {
-        var wb = XLSX.read(e.target.result, { type: 'binary' });
+        var wb = XLSX.read(e.target.result, { type: 'binary', cellFormula: false, cellNF: false });
         var text = '';
-        wb.SheetNames.forEach(function(name) { text += '\n[Sheet: ' + name + ']\n' + XLSX.utils.sheet_to_csv(wb.Sheets[name]); });
+        wb.SheetNames.forEach(function(name) {
+          var ws = wb.Sheets[name];
+          // Use sheet_to_json to get computed values, not formula strings
+          var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          text += '\n[Sheet: ' + name + ']\n';
+          rows.forEach(function(row) {
+            var line = row.filter(function(c) { return c !== ''; }).join('\t');
+            if (line.trim()) text += line + '\n';
+          });
+        });
         resolve(text.slice(0, 12000));
       } catch (err) { reject(err); }
     };
