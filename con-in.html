@@ -300,7 +300,7 @@ async function runExtraction() {
 }
 
 function buildPrompt() {
-  return 'Extract these fields and return ONLY a valid JSON object, no markdown, no explanation:\n{"client_name":"","contract_number":"","project_name":"","project_number":"","contract_amount":"","currency":"EUR","payment_terms":"","contract_start_date":"YYYY-MM-DD","contract_end_date":"YYYY-MM-DD","key_account":"","milestones":[{"description":"","amount":"","due_date":"YYYY-MM-DD"}]}\nRules: leave unknown fields as empty string. Extract ALL milestone/payment rows. Dates must be YYYY-MM-DD. Amount fields must be numeric strings only.';
+  return '';
 }
 
 function excelToText(file) {
