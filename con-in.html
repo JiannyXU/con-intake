@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contract Intake</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F3; --surface: #FFFFFF; --surface2: #F0EEE9;
+    --border: #E2DFD8; --border-strong: #C8C4BB;
+    --text: #1A1916; --text-2: #6B6860; --text-3: #A09D97;
+    --accent: #1A6B4A; --accent-light: #E8F4EE; --accent-mid: #2D9966;
+    --warning: #92510A; --warning-bg: #FEF3E2;
+    --danger: #8A1A1A; --danger-bg: #FCEAEA;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .app { max-width: 720px; margin: 0 auto; padding: 24px 20px 60px; }
+  .app-header { margin-bottom: 28px; }
+  .app-header h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.3px; }
+  .app-header p { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .steps { display: flex; margin-bottom: 28px; border: 0.5px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .step-tab { flex: 1; padding: 10px 6px; text-align: center; font-size: 12px; color: var(--text-3); cursor: pointer; border-right: 0.5px solid var(--border); transition: all .15s; user-select: none; }
+  .step-tab:last-child { border-right: none; }
+  .step-tab.active { background: var(--accent); color: #fff; font-weight: 500; }
+  .step-tab.done { background: var(--accent-light); color: var(--accent); }
+  .step-tab:hover:not(.active):not(.done) { background: var(--surface2); color: var(--text-2); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .upload-zone { border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all .15s; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent-mid); background: var(--accent-light); }
+  .upload-zone.has-file { border-style: solid; border-color: var(--accent); background: var(--accent-light); }
+  .upload-zone h3 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .upload-zone p { font-size: 12px; color: var(--text-3); }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .field input, .field select { font-family: var(--sans); font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; transition: border-color .12s; }
+  .field input:focus, .field select:focus { border-color: var(--accent-mid); }
+  .field input.ai-filled { border-color: var(--accent); background: var(--accent-light); }
+  .ai-btn { width: 100%; margin-top: 14px; padding: 11px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+  .ai-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .ai-btn:hover:not(:disabled) { opacity: .88; }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: var(--text-3); font-size: 12px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  .thinking { display: none; align-items: center; gap: 8px; padding: 10px 0; font-size: 13px; color: var(--text-2); }
+  .thinking.show { display: flex; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse .9s ease-in-out infinite; }
+  .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+  @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+  .ms-header { display: grid; grid-template-columns: 2.5fr 1fr 1fr 28px; gap: 8px; margin-bottom: 6px; }
+  .ms-header span { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+  .ms-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr 28px; gap: 8px; margin-bottom: 7px; align-items: center; }
+  .ms-row input { font-family: var(--sans); font-size: 13px; padding: 7px 9px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; width: 100%; transition: border-color .12s; }
+  .ms-row input:focus { border-color: var(--accent-mid); }
+  .ms-row input.ai-filled { border-color: var(--accent); background: var(--accent-light); }
+  .ms-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; transition: color .12s; }
+  .ms-del:hover { color: var(--danger); }
+  .add-ms { background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--accent); padding: 6px 0; }
+  .ms-total { display: flex; justify-content: space-between; padding: 10px 0 2px; border-top: 0.5px solid var(--border); margin-top: 8px; }
+  .ms-total span:first-child { font-size: 13px; color: var(--text-2); }
+  .ms-total span:last-child { font-size: 14px; font-weight: 500; font-family: var(--mono); }
+  .ai-badge { font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 20px; display: none; font-weight: 500; }
+  .ai-badge.show { display: inline-flex; }
+  .review-table { width: 100%; }
+  .review-table tr td { padding: 7px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .review-table tr:last-child td { border-bottom: none; }
+  .review-table td:first-child { color: var(--text-2); width: 45%; }
+  .review-table td:last-child { font-weight: 500; text-align: right; font-family: var(--mono); font-size: 12px; }
+  .review-table td.normal { font-family: var(--sans); font-size: 13px; }
+  .notice { background: var(--warning-bg); border: 0.5px solid #E8C070; border-radius: 9px; padding: 12px 14px; font-size: 13px; color: var(--warning); display: flex; gap: 9px; }
+  .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .btn { font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 8px 18px; border-radius: 7px; cursor: pointer; transition: all .12s; border: 0.5px solid var(--border); background: var(--surface); color: var(--text-2); }
+  .btn:hover { background: var(--surface2); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { opacity: .88; }
+  .status-pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .status-draft { background: var(--surface2); color: var(--text-2); }
+  .status-done { background: var(--accent-light); color: var(--accent); }
+  .success-state { text-align: center; padding: 40px 20px; }
+  .success-state .icon { font-size: 36px; margin-bottom: 12px; }
+  .success-state h2 { font-size: 18px; font-weight: 500; margin-bottom: 6px; }
+  .success-state p { font-size: 13px; color: var(--text-2); }
+  .error-msg { background: var(--danger-bg); border: 0.5px solid #E89090; border-radius: 7px; padding: 10px 12px; font-size: 13px; color: var(--danger); margin-top: 10px; display: none; }
+  .error-msg.show { display: block; }
+  @media (max-width: 480px) {
+    .field-grid { grid-template-columns: 1fr; }
+    .ms-header, .ms-row { grid-template-columns: 1.5fr 1fr 1fr 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><h1>New contract</h1><p>Upload a contract or BOQ to auto-fill, or enter details manually</p></div>
+      <span class="status-pill status-draft" id="status-pill">Draft</span>
+    </div>
+  </div>
+  <div class="steps">
+    <div class="step-tab active" id="tab1" onclick="goStep(1)">1 · Upload</div>
+    <div class="step-tab" id="tab2" onclick="goStep(2)">2 · Details</div>
+    <div class="step-tab" id="tab3" onclick="goStep(3)">3 · Milestones</div>
+    <div class="step-tab" id="tab4" onclick="goStep(4)">4 · Review</div>
+  </div>
+
+  <div class="panel active" id="panel1">
+    <div class="card">
+      <div class="card-title">Contract / BOQ file</div>
+      <div class="upload-zone" id="upload-zone"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleDrop(event)">
+        <input type="file" id="file-input" accept=".pdf,.xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+        <div style="font-size:28px;margin-bottom:8px">📄</div>
+        <h3 id="upload-label">Drag & drop or click to browse</h3>
+        <p>PDF or Excel (.xlsx / .xls)</p>
+      </div>
+      <button class="ai-btn" id="extract-btn" disabled onclick="runExtraction()">✦ Extract with AI</button>
+      <div class="thinking" id="thinking">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <span id="thinking-text">Reading file…</span>
+      </div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+    <div class="divider">or skip and fill manually</div>
+    <div class="btn-row"><button class="btn primary" onclick="goStep(2)">Fill manually →</button></div>
+  </div>
+
+  <div class="panel" id="panel2">
+    <div class="card">
+      <div class="card-title">Client & contract <span class="ai-badge" id="badge-contract">✦ AI filled</span></div>
+      <div class="field-grid">
+        <div class="field"><label>Client name</label><input type="text" id="f-client" placeholder="e.g. Huawei Technologies"></div>
+        <div class="field"><label>Contract number</label><input type="text" id="f-contract-no" placeholder="e.g. FPA3721DEU…"></div>
+      </div>
+      <div class="field-grid">
+        <div class="field"><label>Project name</label><input type="text" id="f-project-name" placeholder="e.g. Huawei DP Container"></div>
+        <div class="field"><label>Project number</label><input type="text" id="f-project-no" placeholder="e.g. 24218"></div>
+      </div>
+      <div class="field-grid" style="margin-bottom:0">
+        <div class="field"><label>Contract start date</label><input type="date" id="f-start"></div>
+        <div class="field"><label>Contract end date</label><input type="date" id="f-end"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Financial terms <span class="ai-badge" id="badge-finance">✦ AI filled</span></div>
+      <div class="field-grid">
+        <div class="field"><label>Currency</label>
+          <select id="f-currency"><option>EUR</option><option>USD</option><option>GBP</option><option>CNY</option></select>
+        </div>
+        <div class="field"><label>Contract amount</label><input type="number" id="f-amount" placeholder="0.00"></div>
+      </div>
+      <div class="field-grid" style="margin-bottom:0">
+        <div class="field"><label>Payment terms</label><input type="text" id="f-terms" placeholder="e.g. 30 days after signing"></div>
+        <div class="field"><label>Key account</label><input type="text" id="f-account" placeholder="e.g. Huawei"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="goStep(1)">← Back</button>
+      <button class="btn primary" onclick="goStep(3)">Next →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel3">
+    <div class="card">
+      <div class="card-title">Milestone payments <span class="ai-badge" id="badge-ms">✦ AI filled</span></div>
+      <div class="ms-header"><span>Description</span><span>Amount</span><span>Due date</span><span></span></div>
+      <div id="ms-container"></div>
+      <button class="add-ms" onclick="addMilestone()">＋ Add milestone</button>
+      <div class="ms-total">
+        <span>Total milestone amount</span>
+        <span id="ms-total">EUR 0.00</span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="goStep(2)">← Back</button>
+      <button class="btn primary" onclick="goStep(4)">Next →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel4">
+    <div class="card">
+      <div class="card-title">Contract summary</div>
+      <table class="review-table" id="review-summary"></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Milestones</div>
+      <table class="review-table" id="review-ms"></table>
+    </div>
+    <div class="notice">
+      <span>⚠</span>
+      <span>Once submitted, the record will be locked pending PM approval. You will receive a Lark notification when the status changes.</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="goStep(3)">← Back</button>
+      <button class="btn primary" id="submit-btn" onclick="submitForm()">Submit for PM review →</button>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-success">
+    <div class="card">
+      <div class="success-state">
+        <div class="icon">✅</div>
+        <h2>Submitted for review</h2>
+        <p>The PM has been notified via Lark.<br>You can close this window.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ANTHROPIC_API_KEY = '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';
+const LARK_WEBHOOK_URL  = 'https://open.larksuite.com/open-apis/bot/v2/hook/da8db5b3-0dcd-4e05-b12a-c531ba5046e9';
+
+let uploadedFile = null;
+let msCount = 0;
+let aiUsed = false;
+
+function goStep(n) {
+  if (n === 4) buildReview();
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-tab').forEach(t => { t.classList.remove('active'); });
+  document.getElementById('panel' + n).classList.add('active');
+  document.getElementById('tab' + n).classList.add('active');
+  for (let i = 1; i < n; i++) document.getElementById('tab' + i).classList.add('done');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  uploadedFile = file;
+  document.getElementById('upload-zone').classList.add('has-file');
+  document.getElementById('upload-label').textContent = file.name;
+  document.getElementById('extract-btn').disabled = false;
+  hideError();
+}
+
+async function runExtraction() {
+  const btn = document.getElementById('extract-btn');
+  const thinking = document.getElementById('thinking');
+  btn.disabled = true;
+  thinking.classList.add('show');
+  hideError();
+  try {
+    const ext = uploadedFile.name.split('.').pop().toLowerCase();
+    let messageContent;
+    if (ext === 'pdf') {
+      document.getElementById('thinking-text').textContent = 'Reading PDF, extracting fields…';
+      const base64 = await fileToBase64(uploadedFile);
+      messageContent = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+        { type: 'text', text: buildPrompt() }
+      ];
+    } else {
+      document.getElementById('thinking-text').textContent = 'Reading Excel BOQ, extracting fields…';
+      const text = await excelToText(uploadedFile);
+      messageContent = [{ type: 'text', text: 'BOQ/contract Excel content:\n\n' + text + '\n\n' + buildPrompt() }];
+    }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: messageContent }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content.map(i => i.text || '').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    fillFields(parsed);
+    aiUsed = true;
+    thinking.classList.remove('show');
+    goStep(2);
+  } catch (err) {
+    thinking.classList.remove('show');
+    btn.disabled = false;
+    showError('Extraction failed: ' + err.message + '. Please fill in the details manually.');
+  }
+}
+
+function buildPrompt() {
+  return `Extract these fields and return ONLY a valid JSON object, no markdown, no explanation:
+{"client_name":"","contract_number":"","project_name":"","project_number":"","contract_amount":"","currency":"EUR","payment_terms":"","contract_start_date":"YYYY-MM-DD","contract_end_date":"YYYY-MM-DD","key_account":"","milestones":[{"description":"","amount":"","due_date":"YYYY-MM-DD"}]}
+Rules: leave unknown fields as empty string. Extract ALL milestone/payment rows. Dates must be YYYY-MM-DD. Amount fields must be numeric strings only.`;
+}
+
+function excelToText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'binary' });
+        let text = '';
+        wb.SheetNames.forEach(name => { text += '\n[Sheet: ' + name + ']\n' + XLSX.utils.sheet_to_csv(wb.Sheets[name]); });
+        resolve(text.slice(0, 12000));
+      } catch (err) { reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsBinaryString(file);
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+function fillFields(d) {
+  const map = {
+    'f-client': d.client_name, 'f-contract-no': d.contract_number,
+    'f-project-name': d.project_name, 'f-project-no': d.project_number,
+    'f-start': d.contract_start_date, 'f-end': d.contract_end_date,
+    'f-amount': d.contract_amount, 'f-terms': d.payment_terms, 'f-account': d.key_account
+  };
+  Object.entries(map).forEach(([id, val]) => {
+    if (val) { const el = document.getElementById(id); el.value = val; el.classList.add('ai-filled'); }
+  });
+  if (d.currency) document.getElementById('f-currency').value = d.currency;
+  document.getElementById('badge-contract').classList.add('show');
+  document.getElementById('badge-finance').classList.add('show');
+  if (d.milestones && d.milestones.length) {
+    document.getElementById('ms-container').innerHTML = '';
+    msCount = 0;
+    d.milestones.forEach(m => addMilestone(m.description, m.amount, m.due_date, true));
+    document.getElementById('badge-ms').classList.add('show');
+  }
+}
+
+function addMilestone(desc, amount, date, ai) {
+  desc = desc || ''; amount = amount || ''; date = date || ''; ai = ai || false;
+  msCount++;
+  const id = msCount;
+  const row = document.createElement('div');
+  row.className = 'ms-row';
+  row.id = 'ms-' + id;
+  const c = ai ? ' ai-filled' : '';
+  row.innerHTML =
+    '<input type="text" class="' + c + '" placeholder="e.g. Upon contract signing" value="' + esc(desc) + '" oninput="calcTotal()">' +
+    '<input type="number" class="' + c + '" placeholder="0.00" value="' + esc(amount) + '" oninput="calcTotal()">' +
+    '<input type="date" class="' + c + '" value="' + esc(date) + '">' +
+    '<button class="ms-del" onclick="document.getElementById(\'ms-' + id + '\').remove();calcTotal()" aria-label="Remove">×</button>';
+  document.getElementById('ms-container').appendChild(row);
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('#ms-container input[type=number]').forEach(i => { total += parseFloat(i.value) || 0; });
+  const cur = document.getElementById('f-currency').value || 'EUR';
+  document.getElementById('ms-total').textContent = cur + ' ' + total.toLocaleString('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function buildReview() {
+  const cur = v('f-currency') || 'EUR';
+  const amt = parseFloat(v('f-amount')) || 0;
+  const rows = [
+    ['Client', v('f-client') || '—', true],
+    ['Contract number', v('f-contract-no') || '—', false],
+    ['Project', ([v('f-project-no'), v('f-project-name')].filter(Boolean).join(' ')) || '—', true],
+    ['Contract period', ([v('f-start'), v('f-end')].filter(Boolean).join(' → ')) || '—', true],
+    ['Contract amount', cur + ' ' + amt.toLocaleString('en-DE', { minimumFractionDigits: 2 }), false],
+    ['Payment terms', v('f-terms') || '—', true],
+    ['Key account', v('f-account') || '—', true],
+  ];
+  document.getElementById('review-summary').innerHTML = rows.map(function(r) {
+    return '<tr><td>' + r[0] + '</td><td class="' + (r[2] ? 'normal' : '') + '">' + r[1] + '</td></tr>';
+  }).join('');
+  const msRows = document.querySelectorAll('#ms-container .ms-row');
+  let msHtml = '';
+  msRows.forEach(function(row, i) {
+    const inputs = row.querySelectorAll('input');
+    const d = inputs[0].value || ('Milestone ' + (i + 1));
+    const a = parseFloat(inputs[1].value) || 0;
+    const dt = inputs[2].value || 'TBD';
+    msHtml += '<tr><td class="normal">' + d + '</td><td>' + cur + ' ' + a.toLocaleString('en-DE', { minimumFractionDigits: 2 }) + ' · ' + dt + '</td></tr>';
+  });
+  document.getElementById('review-ms').innerHTML = msHtml || '<tr><td colspan="2" style="color:var(--text-3)">No milestones added</td></tr>';
+}
+
+async function submitForm() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  const cur = v('f-currency') || 'EUR';
+  const milestones = [];
+  document.querySelectorAll('#ms-container .ms-row').forEach(function(row) {
+    const inputs = row.querySelectorAll('input');
+    milestones.push({ description: inputs[0].value, amount: inputs[1].value, due_date: inputs[2].value });
+  });
+  const payload = {
+    client_name: v('f-client'), contract_number: v('f-contract-no'),
+    project_name: v('f-project-name'), project_number: v('f-project-no'),
+    contract_start_date: v('f-start'), contract_end_date: v('f-end'),
+    contract_amount: v('f-amount'), currency: cur,
+    payment_terms: v('f-terms'), key_account: v('f-account'),
+    milestones: milestones, ai_assisted: aiUsed,
+    submitted_at: new Date().toISOString()
+  };
+  try {
+    await fetch(LARK_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        msg_type: 'text',
+        content: { text: '📋 New contract pending review\nProject: ' + payload.project_number + ' ' + payload.project_name + '\nClient: ' + payload.client_name + '\nAmount: ' + cur + ' ' + parseFloat(payload.contract_amount || 0).toLocaleString('en-DE', { minimumFractionDigits: 2 }) + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB') }
+      })
+    });
+  } catch(e) { console.warn('Lark notify failed', e); }
+  document.getElementById('status-pill').className = 'status-pill status-done';
+  document.getElementById('status-pill').textContent = 'Submitted';
+  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('panel-success').classList.add('active');
+}
+
+function v(id) { return document.getElementById(id).value.trim(); }
+function esc(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function showError(msg) { const el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
+function hideError() { document.getElementById('error-msg').classList.remove('show'); }
+
+addMilestone('Upon contract signing', '', '');
+addMilestone('Mid-project milestone', '', '');
+</script>
+</body>
+</html>
