@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/extract.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/con-in.html" }],
   "headers": [
     {
