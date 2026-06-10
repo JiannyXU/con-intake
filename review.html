@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contract Review</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #F7F6F3; --surface: #FFFFFF; --surface2: #F0EEE9;
+    --border: #E2DFD8; --border-strong: #C8C4BB;
+    --text: #1A1916; --text-2: #6B6860; --text-3: #A09D97;
+    --accent: #1A6B4A; --accent-light: #E8F4EE; --accent-mid: #2D9966;
+    --warning: #92510A; --warning-bg: #FEF3E2;
+    --danger: #8A1A1A; --danger-bg: #FCEAEA;
+    --info: #1A3A8A; --info-bg: #EEF3FC;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .app { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+  .page-header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .page-header h1 { font-size: 20px; font-weight: 500; }
+  .page-header p { font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .status-pill { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .status-pending { background: var(--warning-bg); color: var(--warning); }
+  .status-approved { background: var(--accent-light); color: var(--accent); }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .new-project-banner { background: var(--info-bg); border: 0.5px solid #A0B8F0; border-radius: 9px; padding: 12px 14px; font-size: 13px; color: var(--info); display: flex; gap: 9px; margin-bottom: 14px; align-items: flex-start; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field-grid.single { grid-template-columns: 1fr; }
+  .field-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .field label .req { color: var(--danger); margin-left: 2px; }
+  .field input, .field select { font-family: var(--sans); font-size: 13px; padding: 8px 10px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; transition: border-color .12s; }
+  .field input:focus, .field select:focus { border-color: var(--accent-mid); }
+  .field input.readonly { background: var(--surface2); color: var(--text-2); cursor: default; font-family: var(--mono); }
+  .field input.highlight { border-color: var(--accent); background: var(--accent-light); }
+  .section-divider { border: none; border-top: 0.5px solid var(--border); margin: 16px 0; }
+  .ms-header { display: grid; grid-template-columns: 2.5fr 1fr 1fr 28px; gap: 8px; margin-bottom: 6px; }
+  .ms-header span { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
+  .ms-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr 28px; gap: 8px; margin-bottom: 7px; align-items: center; }
+  .ms-row input { font-family: var(--sans); font-size: 13px; padding: 7px 9px; border: 0.5px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; width: 100%; }
+  .ms-row input[type=number] { font-family: var(--mono); }
+  .ms-row input:focus { border-color: var(--accent-mid); }
+  .ms-del { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 18px; line-height: 1; }
+  .ms-del:hover { color: var(--danger); }
+  .add-ms { background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; color: var(--accent); padding: 6px 0; }
+  .ms-total { display: flex; justify-content: space-between; padding: 10px 0 2px; border-top: 0.5px solid var(--border); margin-top: 8px; }
+  .ms-total span:first-child { font-size: 13px; color: var(--text-2); }
+  .ms-total span:last-child { font-size: 14px; font-weight: 500; font-family: var(--mono); }
+  .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .btn { font-family: var(--sans); font-size: 13px; font-weight: 500; padding: 8px 18px; border-radius: 7px; cursor: pointer; transition: all .12s; border: 0.5px solid var(--border); background: var(--surface); color: var(--text-2); }
+  .btn:hover { background: var(--surface2); }
+  .btn.approve { background: var(--accent); color: #fff; border-color: var(--accent); padding: 10px 28px; font-size: 14px; }
+  .btn.approve:hover { opacity: .88; }
+  .btn.approve:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.reject { background: var(--danger-bg); color: var(--danger); border-color: #E89090; }
+  .loading { text-align: center; padding: 60px 20px; color: var(--text-3); font-size: 14px; }
+  .error-banner { background: var(--danger-bg); border: 0.5px solid #E89090; border-radius: 9px; padding: 12px 14px; font-size: 13px; color: var(--danger); margin-bottom: 14px; display: none; }
+  .error-banner.show { display: block; }
+  .success-state { text-align: center; padding: 60px 20px; }
+  .success-state .icon { font-size: 40px; margin-bottom: 16px; }
+  .success-state h2 { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .success-state p { font-size: 13px; color: var(--text-2); }
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .toggle-label { font-size: 13px; color: var(--text-2); }
+  .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; inset: 0; background: var(--border-strong); border-radius: 20px; transition: .2s; }
+  .slider:before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .2s; }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider:before { transform: translateX(16px); }
+  .new-project-fields { display: none; }
+  .new-project-fields.show { display: block; }
+  @media (max-width: 480px) {
+    .field-grid, .field-grid.triple { grid-template-columns: 1fr; }
+    .ms-header, .ms-row { grid-template-columns: 1.5fr 1fr 1fr 24px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="loading" class="loading">Loading contract data…</div>
+  <div id="main" style="display:none">
+    <div class="page-header">
+      <div>
+        <h1>Contract review</h1>
+        <p id="submitted-by">Submitted for PM approval</p>
+      </div>
+      <span class="status-pill status-pending" id="status-pill">Pending review</span>
+    </div>
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <!-- New project toggle -->
+    <div class="card">
+      <div class="card-title">Project</div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="is-new-project" onchange="toggleNewProject()">
+          <span class="slider"></span>
+        </label>
+        <span class="toggle-label">Create new project in Lark Base</span>
+      </div>
+      <div class="new-project-fields" id="new-project-fields">
+        <div class="new-project-banner">
+          <span>ℹ</span>
+          <span>A new project record will be created in the Project Overview table. Project Full Description will be auto-generated as "Project Number + Project Name".</span>
+        </div>
+        <div class="field-grid" style="margin-bottom:12px">
+          <div class="field">
+            <label>Project Number <span class="req">*</span></label>
+            <input type="number" id="f-project-no" placeholder="e.g. 24218">
+          </div>
+          <div class="field">
+            <label>Account</label>
+            <input type="text" id="f-account" placeholder="e.g. Huawei">
+          </div>
+        </div>
+      </div>
+      <div class="field-grid single">
+        <div class="field">
+          <label>Project name <span class="req">*</span></label>
+          <input type="text" id="f-project-name" placeholder="e.g. HyxiPower Roadshows">
+        </div>
+      </div>
+    </div>
+
+    <!-- Contract details -->
+    <div class="card">
+      <div class="card-title">Contract details</div>
+      <div class="field-grid" style="margin-bottom:12px">
+        <div class="field">
+          <label>Client name</label>
+          <input type="text" id="f-client">
+        </div>
+        <div class="field">
+          <label>Contract number</label>
+          <input type="text" id="f-contract-no">
+        </div>
+      </div>
+      <div class="field-grid" style="margin-bottom:12px">
+        <div class="field">
+          <label>Contract start date</label>
+          <input type="date" id="f-start">
+        </div>
+        <div class="field">
+          <label>Contract end date</label>
+          <input type="date" id="f-end">
+        </div>
+      </div>
+      <div class="field-grid single" style="margin-bottom:0">
+        <div class="field">
+          <label>Payment terms</label>
+          <input type="text" id="f-terms">
+        </div>
+      </div>
+    </div>
+
+    <!-- Milestones -->
+    <div class="card">
+      <div class="card-title">Milestone payments</div>
+      <div class="ms-header"><span>Description</span><span>Amount</span><span>Due date</span><span></span></div>
+      <div id="ms-container"></div>
+      <button class="add-ms" onclick="addMilestone()">＋ Add milestone</button>
+      <div class="ms-total">
+        <span>Contract amount</span>
+        <span id="ms-total">EUR 0.00</span>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="btn-row">
+      <button class="btn reject" onclick="rejectContract()">Reject</button>
+      <button class="btn approve" id="approve-btn" onclick="approveContract()">✓ Approve & save to Lark Base</button>
+    </div>
+  </div>
+
+  <div id="success" style="display:none">
+    <div class="card">
+      <div class="success-state">
+        <div class="icon">✅</div>
+        <h2>Contract approved</h2>
+        <p>Records have been created in Lark Base.<br>Contract table and invoice milestones are ready.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var draftData = null;
+var msCount = 0;
+var currency = 'EUR';
+
+// Load draft from URL param
+window.onload = async function() {
+  var params = new URLSearchParams(window.location.search);
+  var id = params.get('id');
+  if (!id) {
+    document.getElementById('loading').textContent = 'No contract ID found. Please use the link from the Lark notification.';
+    return;
+  }
+  try {
+    var res = await fetch('/api/submit?id=' + id);
+    if (!res.ok) throw new Error('Draft not found');
+    draftData = await res.json();
+    populateForm(draftData);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading').textContent = 'Failed to load contract: ' + e.message;
+  }
+};
+
+function populateForm(d) {
+  currency = d.currency || 'EUR';
+  set('f-client', d.client_name);
+  set('f-contract-no', d.contract_number);
+  set('f-project-name', d.project_name);
+  set('f-account', d.client_name);
+  set('f-start', d.contract_start_date);
+  set('f-end', d.contract_end_date);
+  set('f-terms', d.payment_terms);
+  document.getElementById('submitted-by').textContent =
+    'Submitted ' + (d.submitted_at ? new Date(d.submitted_at).toLocaleDateString('en-GB') : '');
+  if (d.milestones && d.milestones.length) {
+    d.milestones.forEach(function(m) { addMilestone(m.description, m.amount, m.due_date); });
+  }
+}
+
+function toggleNewProject() {
+  var on = document.getElementById('is-new-project').checked;
+  document.getElementById('new-project-fields').classList.toggle('show', on);
+}
+
+function addMilestone(desc, amount, date) {
+  desc = desc || ''; amount = amount || ''; date = date || '';
+  msCount++;
+  var id = msCount;
+  var row = document.createElement('div');
+  row.className = 'ms-row';
+  row.id = 'ms-' + id;
+  row.innerHTML =
+    '<input type="text" placeholder="e.g. Upon contract signing" value="' + esc(desc) + '" oninput="calcTotal()">' +
+    '<input type="number" placeholder="0.00" value="' + esc(amount) + '" oninput="calcTotal()">' +
+    '<input type="date" value="' + esc(date) + '">' +
+    '<button class="ms-del" onclick="document.getElementById(\'ms-' + id + '\').remove();calcTotal()">×</button>';
+  document.getElementById('ms-container').appendChild(row);
+  calcTotal();
+}
+
+function calcTotal() {
+  var total = 0;
+  document.querySelectorAll('#ms-container input[type=number]').forEach(function(i) { total += parseFloat(i.value) || 0; });
+  document.getElementById('ms-total').textContent = currency + ' ' + total.toLocaleString('en-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return total;
+}
+
+async function approveContract() {
+  var btn = document.getElementById('approve-btn');
+  var isNew = document.getElementById('is-new-project').checked;
+
+  if (!g('f-project-name')) return showError('Project name is required.');
+  if (isNew && !g('f-project-no')) return showError('Project number is required for new projects.');
+
+  btn.disabled = true;
+  btn.textContent = 'Saving to Lark Base…';
+  hideError();
+
+  var milestones = [];
+  document.querySelectorAll('#ms-container .ms-row').forEach(function(row) {
+    var inputs = row.querySelectorAll('input');
+    milestones.push({ description: inputs[0].value, amount: inputs[1].value, due_date: inputs[2].value });
+  });
+
+  var total = 0;
+  milestones.forEach(function(m) { total += parseFloat(m.amount) || 0; });
+
+  var payload = {
+    action: 'approve',
+    is_new_project: isNew,
+    project_number: g('f-project-no'),
+    project_name: g('f-project-name'),
+    account: g('f-account'),
+    client_name: g('f-client'),
+    contract_number: g('f-contract-no'),
+    contract_start_date: g('f-start'),
+    contract_end_date: g('f-end'),
+    payment_terms: g('f-terms'),
+    currency: currency,
+    contract_amount: total.toString(),
+    milestones: milestones
+  };
+
+  try {
+    var res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Unknown error');
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✓ Approve & save to Lark Base';
+    showError('Failed to save: ' + e.message);
+  }
+}
+
+async function rejectContract() {
+  if (!confirm('Reject this contract submission? The sales team will need to resubmit.')) return;
+  alert('Rejected. Please notify the sales team via Lark.');
+}
+
+function g(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function set(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; }
+function esc(s) { return (s || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+function showError(msg) { var el = document.getElementById('error-banner'); el.textContent = msg; el.classList.add('show'); }
+function hideError() { document.getElementById('error-banner').classList.remove('show'); }
+</script>
+</body>
+</html>

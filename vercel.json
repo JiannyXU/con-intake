@@ -1,10 +1,12 @@
 {
   "functions": {
-    "api/extract.js": {
-      "maxDuration": 60
-    }
+    "api/extract.js": { "maxDuration": 60 },
+    "api/submit.js": { "maxDuration": 30 }
   },
-  "rewrites": [{ "source": "/(.*)", "destination": "/con-in.html" }],
+  "rewrites": [
+    { "source": "/review", "destination": "/review.html" },
+    { "source": "/(.*)", "destination": "/con-in.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
