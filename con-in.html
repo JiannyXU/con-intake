@@ -485,6 +485,7 @@ async function submitForm() {
   }
 }
 
+function v(id) { return document.getElementById(id).value.trim(); }
 function esc(s) { return (s || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
 function showError(msg) { var el = document.getElementById('error-msg'); el.textContent = msg; el.classList.add('show'); }
 function hideError() { document.getElementById('error-msg').classList.remove('show'); }
