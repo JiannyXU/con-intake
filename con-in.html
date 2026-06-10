@@ -428,8 +428,38 @@ async function submitForm() {
   btn.disabled = true;
   btn.textContent = 'Submitting…';
   var cur = document.getElementById('f-currency').value || 'EUR';
-  var amt = document.getElementById('f-amount').value || '0';
+
+  var milestones = [];
+  document.querySelectorAll('#ms-container .ms-row').forEach(function(row) {
+    var inputs = row.querySelectorAll('input');
+    milestones.push({ description: inputs[0].value, amount: inputs[1].value, due_date: inputs[2].value });
+  });
+
+  var payload = {
+    action: 'save_draft',
+    client_name: v('f-client'),
+    contract_number: v('f-contract-no'),
+    project_name: v('f-project-name'),
+    contract_start_date: v('f-start'),
+    contract_end_date: v('f-end'),
+    payment_terms: v('f-terms'),
+    currency: cur,
+    contract_amount: document.getElementById('f-amount').value,
+    milestones: milestones,
+    submitted_at: new Date().toISOString()
+  };
+
   try {
+    var draftRes = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var draftData = await draftRes.json();
+    if (!draftData.id) throw new Error('Failed to save draft');
+
+    var reviewUrl = 'https://con-intake.vercel.app/review?id=' + draftData.id;
+
     await fetch('/api/extract', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -438,16 +468,21 @@ async function submitForm() {
         payload: {
           msg_type: 'text',
           content: {
-            text: '📋 New Contract pending review\nProject: ' + (document.getElementById('f-project-name').value || '—') + '\nClient: ' + (document.getElementById('f-client').value || '—') + '\nAmount: ' + cur + ' ' + amt + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB')
+            text: '📋 New Contract pending review\nProject: ' + payload.project_name + '\nClient: ' + payload.client_name + '\nAmount: ' + cur + ' ' + payload.contract_amount + '\nSubmitted: ' + new Date().toLocaleDateString('en-GB') + '\n\nReview: ' + reviewUrl
           }
         }
       })
     });
-  } catch(e) { console.warn('Notify failed', e); }
-  document.getElementById('status-pill').className = 'status-pill status-done';
-  document.getElementById('status-pill').textContent = 'Submitted';
-  document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
-  document.getElementById('panel-success').classList.add('active');
+
+    document.getElementById('status-pill').className = 'status-pill status-done';
+    document.getElementById('status-pill').textContent = 'Submitted';
+    document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('panel-success').classList.add('active');
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Submit for PM review →';
+    showError('Submission failed: ' + e.message);
+  }
 }
 
 function esc(s) { return (s || '').toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
